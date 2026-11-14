@@ -408,8 +408,7 @@ if config.signed_download_enabled():
         "Each edit is an object {old_text, new_text}; old_text must match exactly once. Edits apply in order, "
         "and dry_run simulates that same in-order apply (each old_text is matched against the running document "
         "the earlier edits produce), so its diff and match counts predict the real apply, including chained edits. "
-        "Set include_diff=false to leave the diff out of the result when you don't need to see the change; "
-        "a dry run always shows it."
+        "Set include_diff=true to get the diff of an applied change in the result; a dry run always shows it."
     ),
     annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": False, "openWorldHint": False},
 )
@@ -417,7 +416,7 @@ def vault_edit(
     path: str,
     edits: list[VaultEditOperationInput],
     dry_run: bool = False,
-    include_diff: bool = True,
+    include_diff: bool = False,
 ) -> str:
     """Patch a file with exact text replacements."""
     inp = VaultEditInput(path=path, edits=edits, dry_run=dry_run, include_diff=include_diff)

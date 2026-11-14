@@ -143,7 +143,7 @@ def test_dry_run_predicts_the_apply_for_a_chained_pair(note):
     ]
 
     preview = call_tool("vault_edit", {"path": "messung.md", "edits": edits, "dry_run": True})
-    applied = call_tool("vault_edit", {"path": "messung.md", "edits": edits})
+    applied = call_tool("vault_edit", {"path": "messung.md", "edits": edits, "include_diff": True})
 
     assert preview["replacements"] == applied["replacements"] == 4
     assert preview["diff"] == applied["diff"]

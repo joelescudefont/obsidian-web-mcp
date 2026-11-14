@@ -1,10 +1,10 @@
-"""vault_edit's include_diff flag: leave the diff out of an applied edit's result.
+"""vault_edit's include_diff flag: whether an applied edit's result carries the diff.
 
 The diff is most of the reply to a small edit, and a caller that already knows what it
-sent has no use for it. `include_diff: false` leaves it out. The default stays true, so
-every existing call gets the same reply as before, and a dry run always returns its diff,
-because showing the change is what a dry run is for. Errors keep their empty "diff" key
-whatever the flag says.
+sent has no use for it. The default is false, so an applied edit leaves the diff out
+unless `include_diff: true` asks for it. A dry run always returns its diff, because
+showing the change is what a dry run is for. Errors keep their empty "diff" key whatever
+the flag says.
 
 Every case goes through the registered tool, like test_vault_edit_replace_all.py, so the
 input model, the audit wrapper and the write path are all in the picture.
@@ -78,18 +78,24 @@ def audit_log(tmp_path, monkeypatch, vault_dir):
     context.reset_request_context(token)
 
 
-def test_the_default_still_returns_the_diff(twin_notes):
-    """Negative control: without the flag the reply is what it was before, diff included,
-    and it is the same reply as include_diff=true."""
-    default = edit("eins.md", [ONE_WORD])
-    explicit = edit("zwei.md", [ONE_WORD], include_diff=True)
+def test_include_diff_true_returns_the_diff(twin_notes):
+    """Negative control: asked for, the reply carries the diff in its usual place."""
+    result = edit("eins.md", [ONE_WORD], include_diff=True)
 
-    assert list(default) == APPLIED_KEYS, default
-    assert "-Ein dritter Satz nennt den Zaehlerstand erneut." in default["diff"]
-    assert "+Ein vierter Satz nennt den Zaehlerstand erneut." in default["diff"]
-    assert default["diff"].startswith("--- eins.md before\n+++ eins.md after\n")
-    assert without(default, "path", "diff") == without(explicit, "path", "diff")
-    assert default["diff"].replace("eins.md", "zwei.md") == explicit["diff"]
+    assert list(result) == APPLIED_KEYS, result
+    assert "-Ein dritter Satz nennt den Zaehlerstand erneut." in result["diff"]
+    assert "+Ein vierter Satz nennt den Zaehlerstand erneut." in result["diff"]
+    assert result["diff"].startswith("--- eins.md before\n+++ eins.md after\n")
+
+
+def test_the_default_leaves_the_diff_out(twin_notes):
+    """Without the flag the reply is the one include_diff=false gives."""
+    default = edit("eins.md", [ONE_WORD])
+    explicit = edit("zwei.md", [ONE_WORD], include_diff=False)
+
+    assert "diff" not in default, default
+    assert list(default) == [key for key in APPLIED_KEYS if key != "diff"]
+    assert without(default, "path") == without(explicit, "path")
 
 
 def test_include_diff_false_leaves_only_the_diff_out(note):
@@ -166,14 +172,14 @@ def test_a_value_that_is_not_a_boolean_is_refused(note, value):
     assert note.read_text(encoding="utf-8") == NOTE
 
 
-def test_the_flag_is_in_the_tool_schema_as_a_boolean_defaulting_to_true(vault_dir):
+def test_the_flag_is_in_the_tool_schema_as_a_boolean_defaulting_to_false(vault_dir):
     tool = next(t for t in asyncio.run(server.mcp.list_tools()) if t.name == "vault_edit")
     schema = tool.inputSchema
 
     assert schema["properties"]["include_diff"]["type"] == "boolean"
-    assert schema["properties"]["include_diff"]["default"] is True
+    assert schema["properties"]["include_diff"]["default"] is False
     assert "include_diff" not in schema["required"]
-    assert "include_diff=false" in tool.description
+    assert "include_diff=true" in tool.description
 
 
 def test_with_replace_all_every_occurrence_is_counted_and_no_diff_is_returned(note):
