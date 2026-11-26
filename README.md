@@ -168,7 +168,7 @@ Found a vulnerability? Please report it privately rather than opening a public i
 
 | Tool | Description |
 |------|-------------|
-| `vault_read` | Read a file, returning content, metadata, and parsed YAML frontmatter; `heading` reads one section of a Markdown note, `outline` lists its headings |
+| `vault_read` | Read a file, returning content, metadata, and parsed YAML frontmatter; `heading` reads one section of a Markdown note, `outline` lists its headings; with `VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS` set, a note too big to return whole comes back as its outline (`whole: true` reads it anyway) |
 | `vault_batch_read` | Read multiple files in one call; handles missing files gracefully |
 | `vault_write` | Write a file with optional frontmatter merging; creates parent dirs; `overwrite: false` for create-only (never replaces, also under concurrent calls) |
 | `vault_request_upload_url` | Get a short-lived, single-use signed URL, then `POST` a file's raw bytes to it. For images and PDFs too large to send base64-encoded through `vault_write_binary`; the bytes never pass through the conversation. See [Signed uploads](#signed-uploads) |
@@ -247,6 +247,7 @@ All configuration is via environment variables:
 | `VAULT_OAUTH_REDIRECT_URIS` | No | (none) | Comma-separated allowlist of redirect URIs for the static `VAULT_OAUTH_CLIENT_ID` when using the browser flow. Dynamically-registered clients (Claude/ChatGPT) carry their own; leave unset unless you connect a static client through `/oauth/authorize`. |
 | `VAULT_MCP_CF_ACCESS_TEAM_DOMAIN` | No | (none) | Cloudflare team domain, e.g. `myteam.cloudflareaccess.com` (a bare `myteam` or a full URL is accepted). Set **together with** `VAULT_MCP_CF_ACCESS_AUD` to enable [Cloudflare Access mode](#cloudflare-access-mode-opt-in) (both-or-neither; if either is unset the mode is off). When on, the app's own OAuth routes are not served and `VAULT_MCP_TOKEN` / `VAULT_OAUTH_*` are unused — Cloudflare is the sole auth authority. **Validated at startup:** a malformed domain fails the server closed with a clear message. Requires the `cloudflare-access` extra (missing → fail closed at startup). |
 | `VAULT_MCP_CF_ACCESS_AUD` | No | (none) | Cloudflare Access application **audience (AUD)** tag (from the application's *AUD tag* tab). The second half of Cloudflare Access mode; see `VAULT_MCP_CF_ACCESS_TEAM_DOMAIN` above. |
+| `VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS` | No | `0` | Off by default. When set, a plain `vault_read` of a Markdown note whose reply would pass this many characters returns the note's outline instead of its content (each heading with its line and its section's size, a section past the limit flagged), so a client that caps a tool's result can read one section with `heading` next; `whole: true` reads past it. A note with no headings, a file that isn't Markdown and `vault_batch_read` are unaffected. Must be a whole number, 0 or more; a bad value fails closed at startup. |
 | `VAULT_DAILY_NOTES_FOLDER` | No | (none) | Folder for the daily-note tools; empty means the vault root |
 | `VAULT_DAILY_NOTES_FORMAT` | No | `%Y-%m-%d` | `strftime` pattern for the daily-note filename |
 | `VAULT_DAILY_NOTES_TEMPLATE` | No | (none) | `strftime` template prepended when a daily note is first created |

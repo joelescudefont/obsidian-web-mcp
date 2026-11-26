@@ -44,6 +44,10 @@ class VaultReadInput(BaseModel):
         default=False,
         description="Return the note's headings, each with its line and its section's size, instead of its content",
     )
+    whole: bool = Field(
+        default=False,
+        description="Return the whole note even when its size would switch a plain read to the outline",
+    )
 
     @field_validator("heading")
     @classmethod
@@ -53,7 +57,11 @@ class VaultReadInput(BaseModel):
 
     @model_validator(mode="after")
     def _one_way_to_read(self) -> "VaultReadInput":
-        given = [name for name, on in (("heading", self.heading is not None), ("outline", self.outline)) if on]
+        given = [
+            name
+            for name, on in (("heading", self.heading is not None), ("outline", self.outline), ("whole", self.whole))
+            if on
+        ]
         if len(given) > 1:
             joined = ", ".join(f"'{name}'" for name in given)
             raise ValueError(f"Use only one of {joined}, not several")

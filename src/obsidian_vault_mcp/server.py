@@ -220,21 +220,42 @@ from .models import (
 )
 
 
+_READ_FIRST_SENTENCE = (
+    "Read a file from the Obsidian vault, returning content, metadata, and parsed YAML frontmatter."
+)
+_HEADING_FORMS = "'## Setup', 'Setup' (at any level), or '# Guide > ## Setup' when it repeats"
+
+
+def vault_read_description(outline_threshold: int) -> str:
+    """vault_read's description, naming the outline switch and whole only when the switch is on.
+
+    It carries no number, so changing the threshold leaves the tool's definition as it was:
+    a client that asks again for approval when a definition changes asks only once. The
+    outline the switch sends carries the limit instead.
+    """
+    if outline_threshold > 0:
+        return (
+            f"{_READ_FIRST_SENTENCE} A Markdown note too big to return whole comes back as its "
+            "outline instead, so you can read only the section you need. Pass heading to read one "
+            f"section, its subheadings included: {_HEADING_FORMS}. Set outline=true for any note's "
+            "outline. Set whole=true to read a big note whole anyway, only when you need most of it."
+        )
+    return (
+        f"{_READ_FIRST_SENTENCE} Pass heading to read one section of a Markdown note, its subheadings "
+        f"included: {_HEADING_FORMS}. Set outline=true for the note's headings instead of its content."
+    )
+
+
 @mcp.tool(
     name="vault_read",
-    description=(
-        "Read a file from the Obsidian vault, returning content, metadata, and parsed YAML frontmatter. "
-        "Pass heading to read one section of a Markdown note, its subheadings included: '## Setup', "
-        "'Setup' (at any level), or '# Guide > ## Setup' when it repeats. Set outline=true for the "
-        "note's headings instead of its content."
-    ),
+    description=vault_read_description(config.VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS),
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False},
 )
-def vault_read(path: str, heading: str | None = None, outline: bool = False) -> str:
+def vault_read(path: str, heading: str | None = None, outline: bool = False, whole: bool = False) -> str:
     """Read a file from the vault, or one section of it."""
-    inp = VaultReadInput(path=path, heading=heading, outline=outline)
+    inp = VaultReadInput(path=path, heading=heading, outline=outline, whole=whole)
     return run_audited(
-        "vault_read", lambda: _vault_read(inp.path, inp.heading, inp.outline), path=inp.path,
+        "vault_read", lambda: _vault_read(inp.path, inp.heading, inp.outline, inp.whole), path=inp.path,
     )
 
 

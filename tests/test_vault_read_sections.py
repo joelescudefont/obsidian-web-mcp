@@ -577,7 +577,7 @@ def test_a_note_of_little_but_headings_gets_no_outline_bigger_than_itself(write_
     result = read(name, heading="## missing")
 
     assert "outline" not in result
-    assert result["error"] == "No heading matches, and the outline would be bigger than the note: read the whole note"
+    assert result["error"].startswith("No heading matches, and the outline would be bigger than the note: read the whole note")
     assert "outline" in read(write_note(GUIDE, "guide.md"), heading="## missing")
 
 

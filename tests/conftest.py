@@ -52,6 +52,18 @@ def isolated_semantic_search(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "VAULT_SEMANTIC_DB_PATH", tmp_path / "semantic" / "embeddings.db")
 
 
+@pytest.fixture(autouse=True)
+def isolated_read_outline_switch(monkeypatch):
+    """vault_read's outline switch is read from the environment at import. Off here unless a
+    test sets it, so an exported VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS cannot turn big reads into
+    outlines across the suite or stop the startup checks; what a server started without it
+    does is checked in a child process with a clean environment."""
+    from obsidian_vault_mcp import config
+
+    monkeypatch.setattr(config, "VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS", 0)
+    monkeypatch.delenv("VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS", raising=False)
+
+
 @pytest.fixture
 def vault_dir(tmp_path, monkeypatch):
     """Create a temporary vault directory with sample files."""

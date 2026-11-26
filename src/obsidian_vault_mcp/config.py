@@ -196,6 +196,15 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+# vault_read's outline switch. A plain read of a Markdown note whose reply would pass this
+# many characters returns the note's outline instead of its content (each heading with its
+# line and its section's size), so a client that caps a tool's result gets something it can
+# use, and then reads one section with heading; whole=true reads past it. 0, the default,
+# turns it off: every read returns the whole note, as before. A bad value would fall back to
+# 0 here; validate_config() refuses it at startup instead.
+VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS = _env_int("VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS", 0)
+
+
 # Signed direct upload (POST /upload/{id}). The route is bearer-exempt because the HMAC
 # signature in the URL is the authorization: single-use, short-lived, constant-time
 # compared, and checked before a single body byte is read. The body is streamed to a
@@ -375,6 +384,7 @@ def validate_config() -> None:
     CLOSED with a clear message instead of booting a broken or insecure server.
     """
     _validate_mcp_path(VAULT_MCP_PATH)
+    _validate_read_settings()
     parse_extra_binary_media_types(os.environ.get("VAULT_EXTRA_BINARY_MEDIA_TYPES_JSON", "").strip())
     if signed_upload_enabled():
         _validate_upload_settings()
@@ -385,6 +395,25 @@ def validate_config() -> None:
     # A no-op unless Cloudflare Access mode is on (both settings set).
     from .cf_access import validate_cf_access_config
     validate_cf_access_config()
+
+
+def _validate_read_settings() -> None:
+    """Fail closed on the outline switch: a whole number of characters, 0 for off.
+
+    The module-level parse falls back to 0 on a bad value, which would silently leave the
+    switch off for VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS=40k; the raw environment is read
+    again here so a typo stops startup with the variable's name.
+    """
+    name = "VAULT_MCP_READ_OUTLINE_THRESHOLD_CHARS"
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return
+    try:
+        value = int(raw)
+    except ValueError:
+        raise ValueError(f"{name} must be a whole number of characters (0 turns it off), got {raw!r}")
+    if value < 0:
+        raise ValueError(f"{name} must be 0 (off) or a positive number of characters, got {value}")
 
 
 def _validate_upload_settings() -> None:
